@@ -4,15 +4,20 @@ import numpy as np
 
 from collections import OrderedDict
 
-from rosbag_to_dataset.dtypes.float64 import Float64Convert
-from rosbag_to_dataset.dtypes.odometry import OdometryConvert
-from rosbag_to_dataset.dtypes.image import ImageConvert
 from rosbag_to_dataset.dtypes.ackermann_drive import AckermannDriveConvert
-from rosbag_to_dataset.dtypes.twist import TwistConvert
-from rosbag_to_dataset.dtypes.imu import ImuConvert
-from rosbag_to_dataset.dtypes.pose import PoseConvert
+from rosbag_to_dataset.dtypes.bool import BoolConvert
+from rosbag_to_dataset.dtypes.compressed_image import CompressedImageConvert
+from rosbag_to_dataset.dtypes.float32 import Float32Convert
+from rosbag_to_dataset.dtypes.float64 import Float64Convert
 from rosbag_to_dataset.dtypes.gridmap import GridMapConvert
+from rosbag_to_dataset.dtypes.image import ImageConvert
+from rosbag_to_dataset.dtypes.imu import ImuConvert
+from rosbag_to_dataset.dtypes.int32 import Int32Convert
+from rosbag_to_dataset.dtypes.odometry import OdometryConvert
+from rosbag_to_dataset.dtypes.pose import PoseConvert
 from rosbag_to_dataset.dtypes.racepak_sensors import RPControlsConvert, RPWheelEncodersConvert, RPShockSensorsConvert
+from rosbag_to_dataset.dtypes.twist import TwistConvert
+from rosbag_to_dataset.dtypes.vector3 import Vector3Convert
 
 class ConfigParser:
     """
@@ -56,10 +61,20 @@ class ConfigParser:
             remap[k] = remap_k
             if 'N_per_step' in v.keys():
                 N = spec['observation'][k]['N_per_step']
-                obs_dict[remap_k] = gym.spaces.Box(low = np.ones([N, obs_shape]) * -float('inf'), high = np.ones([N, obs_shape]) * float('inf'))
+
+                if isinstance(obs_shape, dict):
+                    for kk, vv in obs_shape.items():
+                        obs_dict[remap_k + '_' + kk] = gym.spaces.Box(low = np.ones([N, vv]) * -float('inf'), high = np.ones([N, vv]) * float('inf'))
+                else:
+                    obs_dict[remap_k] = gym.spaces.Box(low = np.ones([N, obs_shape]) * -float('inf'), high = np.ones([N, obs_shape]) * float('inf'))
+
                 rates[k] = spec['dt'] / N
             else:
-                obs_dict[remap_k] = gym.spaces.Box(low = np.ones(obs_shape) * -float('inf'), high = np.ones(obs_shape) * float('inf'))
+                if isinstance(obs_shape, dict):
+                    for kk, vv in obs_shape.items():
+                        obs_dict[remap_k + '_' + kk] = gym.spaces.Box(low = np.ones(vv) * -float('inf'), high = np.ones(vv) * float('inf'))
+                else:
+                    obs_dict[remap_k] = gym.spaces.Box(low = np.ones(obs_shape) * -float('inf'), high = np.ones(obs_shape) * float('inf'))
                 rates[k] = spec['dt']
 
         obs_space = gym.spaces.Dict(obs_dict)
@@ -85,17 +100,22 @@ class ConfigParser:
         return ParseObject(obs_space, act_space, spec['dt']), converters, remap, rates
 
     dtype_convert = {
-        "Float64":Float64Convert,
-        "Odometry":OdometryConvert,
-        "Image":ImageConvert,
         "AckermannDrive":AckermannDriveConvert,
-        "Twist":TwistConvert,
-        "Imu":ImuConvert,
-        "Pose":PoseConvert,
+        "CompressedImage":CompressedImageConvert,
+        "Bool":BoolConvert,
+        "Float32":Float32Convert,
+        "Float64":Float64Convert,
         "GridMap":GridMapConvert,
+        "Image":ImageConvert,
+        "Imu":ImuConvert,
+        "Int32":Int32Convert,
+        "Odometry":OdometryConvert,
+        "Pose":PoseConvert,
         "RPControls":RPControlsConvert,
         "RPWheelEncoders":RPWheelEncodersConvert,
         "RPShockSensors":RPShockSensorsConvert,
+        "Twist":TwistConvert,
+        "Vector3":Vector3Convert,
     }
 
 class ParseObject:
